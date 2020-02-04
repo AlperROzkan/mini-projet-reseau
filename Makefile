@@ -1,8 +1,12 @@
 CC=gcc
 OPTS=-Wall -pedantic -std=c11
 
-objects=main.o \
-		truc.o
+objects=client.o \
+		envoyer.o \
+		programmePC1.o \
+		programmePC2.o \
+		recevoir.o \
+		serveur.c
 
 all: main
 

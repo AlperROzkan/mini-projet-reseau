@@ -6,6 +6,8 @@
 #include "signatures.h"	
 #include <string.h>	// memset
 
+#define h_addr h_addr_list[0] /* for backward compatibility */
+
 int client(char *server, int port)
 {
     int			sock;
