@@ -1,13 +1,17 @@
-CC=gcc -Wall -pedantic -std=c11
+CC=gcc
+OPTS=-Wall -pedantic -std=c11
+
+objects=main.o \
+		truc.o
 
 all: main
 
-main: build %.o
-	@echo erith.img created
+main: build $(objects)
+	@echo project compiled
 
 # pour créer tous les fichiers à compiler
 %.o: %.c 
-	$(CC) -c $< -o build/$@
+	$(CC) $(OPTS) -c $< -o build/$@
 
 # création du dossier de build
 build:
