@@ -13,7 +13,8 @@
 int client(char *server, int port);
 
 /**
- * @brief creePriseReception
+ * @brief C'est la Prise de Reception. Elle ecoute ce que le client dit.
+ * 
  * 
  * @param port 
  * @return int 
