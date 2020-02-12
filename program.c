@@ -1,55 +1,63 @@
 #include <assert.h>
-//#include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>  // for bzero
 
 #include "signatures.h"
+#include "getch.h"
+#include "sleep.h"
 
-#define LONGUEUR_ADRESSE     16
-#define LONGUEUR_MESSAGE    121
-
-#include <unistd.h>
-#include <termios.h>
-
-char getch()
-{
-    char buf = 0;
-    struct termios old = {0};
-
-    if (tcgetattr(0, &old) < 0)
-        perror("tcsetattr()");
-    
-    old.c_lflag &= ~ICANON;
-    old.c_lflag &= ~ECHO;
-    old.c_cc[VMIN] = 1;
-    old.c_cc[VTIME] = 0;
-
-    if (tcsetattr(0, TCSANOW, &old) < 0)
-        perror("tcsetattr ICANON");
-    if (read(0, &buf, 1) < 0)
-        perror("read()");
-
-    old.c_lflag |= ICANON;
-    old.c_lflag |= ECHO;
-
-    if (tcsetattr(0, TCSADRAIN, &old) < 0)
-        perror("tcsetattr ~ICANON");
-
-    return buf;
-}
+#define ADDR_LEN     16
+#define MSG_LEN     121
+#define MASTER_IP "127.0.0.1"
 
 typedef struct
 {
     int type; // 1:token 2:message 3:ack 
-    char adresse_src[LONGUEUR_ADRESSE]; // longueur de l'addresse IP 
-    char adresse_dest[LONGUEUR_ADRESSE];
-    char message[LONGUEUR_MESSAGE];
+    char adresse_src[ADDR_LEN]; // longueur de l'addresse IP 
+    char adresse_dest[ADDR_LEN];
+    char message[MSG_LEN];
 } Packet;
+
+/**
+* Building a token packet and putting it into the buffer
+*/
+void buildBufferAsToken(char *buffer, Packet *p)
+{}
+
+/**
+* building the buffer (raw data to send over the network) from a packet
+*/
+void buildBufferFromPacket(char *buffer, Packet *p)
+{
+    int i = 0;
+    for (; i < ADDR_LEN; ++i)
+        buffer[i] = p->address[i];
+    
+    const int last = i;
+
+    for (; i - last < MSG_LEN; ++i)
+        buffer[i] = p->message[i - last];
+}
+
+/**
+* Building the packet structure from the buffer data
+*/
+void buildPacketFromBuffer(Packet *p, char *buffer)
+{
+    int i = 0;
+    for (; i < ADDR_LEN; ++i)
+        p->address[i] = buffer[i];
+    
+    const int last = i;
+
+    for (; i - last < MSG_LEN; ++i)
+        p->message[i - last] = buffer[i];
+}
 
 void handlePacket(Packet *p, const char *ip)
 {
-    // char buffer[LONGUEUR_MESSAGE];
     switch(p->type)//stype
     {
         case '1': // token
@@ -82,7 +90,7 @@ void handlePacket(Packet *p, const char *ip)
             }
         break;
         case '3': //ack
-        if (attenteACK())
+            if (attenteACK())
             {
                 printf("J'ai recu l'ack que j'attendais.\n");
                 printf("Je release le token");
@@ -102,29 +110,32 @@ void handlePacket(Packet *p, const char *ip)
 int main(int argc, char **argv)
 {
     /*
-        prgm   [mon ip]   [port écoute] [ip suivant] [port envoie]   [message]
-        prgm   127.0.0.1  1111          127.0.0.2    2222            SuperFola est SuperGentil
+        prgm    [my ip] [listenning port] [neighbor ip] [destination port]
+        prgm  127.0.0.1              1111     127.0.0.2               2222
     */
 
+    if (argc != 5)
+    {
+        printf("Need 4 arguments:\n\t%s [my ip] [listenning port] [neighbor ip] [destination port]\n", argv[0]);
+        printf("Example:\n\t%s 127.0.0.1 1111 127.0.0.2 2222\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    // reading arguments
     char* ip = (char*) malloc(sizeof(char) * strlen(argv[1]));
-    strcpy(ip, argv[1]); // ip de l'hote 
-
-    int port = (int) atoi(argv[2]); // Port de l'hote 
-
+    strcpy(ip, argv[1]);
+    int port = (int) atoi(argv[2]);
     char* ip_neigh = (char*) malloc(sizeof(char) * strlen(argv[3]));
-    strcpy(ip_neigh, argv[3]);  // ip de l'ordi suivant sur l'anneau
-
-    int port_neigh = (int) atoi(argv[4]); //port de l'ordi suivant
-
-    printf("%d %d", strcmp(ip, "127.0.0.1"), sizeof(Packet));
+    strcpy(ip_neigh, argv[3]);
+    int port_neigh = (int) atoi(argv[4]);
 
     // data to create sockets
-
     int fd_send = client(ip_neigh, port_neigh);
     int fd_recv = server(port);
     char buffer[sizeof(Packet)];
     Packet p;
 
+    // waiting for user input before starting
     printf("Press d to begin...\n");
     while (1)
     {
@@ -135,36 +146,32 @@ int main(int argc, char **argv)
 
     printf("Starting...\n"); fflush(stdout); //flush force le réaffichage vers le stdout
 
-    if (strcmp(ip, "127.0.0.1") == 0)
+    // send first packet if we are the master
+    if (strcmp(ip, MASTER_IP) == 0)
     {
-        printf("I'm sending the first packet\n"); fflush(stdout);
+        printf("Sending first packet... "); fflush(stdout);
+        buildBufferAsToken(buffer, &p);
         send_data(fd_send, buffer, sizeof(Packet));
-        printf("Packet sent\n"); fflush(stdout);
+        printf("done\n"); fflush(stdout);
     }
-
-    printf("Starting again because that's cool\n"); fflush(stdout);
 
     do
     {
         // reset buffer
-        memset(buffer, '\0', sizeof(char) * sizeof(Packet));
+        bzero(buffer, sizeof(char) * sizeof(Packet));
+
         // recv packet and process it
-        printf("Trying to receive...\n"); fflush(stdout);
         receive(fd_recv, buffer, sizeof(Packet));
-        printf("OMG DUDE that was so hard\n"); fflush(stdout);
-        
-        sscanf(buffer, "%15s%120s", &p.adresse_dest, &p.message);
-        printf("Gotta process that shit\n"); fflush(stdout);
+        buildPacketFromBuffer(&p, buffer);
+
+        // process packet data, knowing what is our own IP
         handlePacket(&p, ip);
-        printf("Shit got processed\n"); fflush(stdout);
 
         // faking a process time because that's so cool
         sleep(1);  // sleep for 1 SECOND
 
         // send it to the next dude on the loop
-        printf("Sending the shit to space\n"); fflush(stdout);
         send_data(fd_send, buffer, sizeof(Packet));
-        printf("Shit got launched into cyber space\n"); fflush(stdout);
     } while (1);
 
     return 0;

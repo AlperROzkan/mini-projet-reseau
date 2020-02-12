@@ -19,4 +19,4 @@ build:
 	@mkdir build
 
 clean:
-	rm -rf build
+	rm -rf build *.o
