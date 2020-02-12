@@ -23,8 +23,8 @@ int client(char *server, int port)
     /*
     *   creating socket structure
     */ 
-    memset(&address, 0, sizeof(address));
-    memcpy(&address.sin_addr, server, strlen(server));
+    bzero((char*) &address, sizeof(struct sockaddr_in));
+    address.sin_addr.s_addr = inet_addr(server);
     address.sin_family = AF_INET;
     address.sin_port = htons(port);
     
