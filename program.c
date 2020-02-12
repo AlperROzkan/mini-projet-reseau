@@ -76,7 +76,7 @@ void buildPacketFromBuffer(Packet *p, char *buffer)
 void buildBufferAsToken(char *buffer, Packet *p)
 {
     // change type, set source and dest as magic address 0xff * ADDR_LEN
-    p->type = ACKNOWLEDGE;
+    p->type = TOKEN;
     memset(p->src_addr,  0xff, sizeof(char) * ADDR_LEN);
     memset(p->dest_addr, 0xff, sizeof(char) * ADDR_LEN);
     bzero(p->message, sizeof(char) * MSG_LEN);
@@ -87,7 +87,7 @@ void buildBufferAsToken(char *buffer, Packet *p)
 void handlePacket(char *buffer, Packet *p, const char *ip)
 {
     // do different things based on the type of the packet
-    switch(p->type)
+    switch (p->type)
     {
         case TOKEN:
             if (1) //wannaSend())
