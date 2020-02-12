@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 /**
- * @brief creePriseemission
+ * @brief create file descriptor for client
  * 
  * @param server 
  * @param port 
@@ -13,32 +13,32 @@
 int client(char *server, int port);
 
 /**
- * @brief C'est la Prise de Reception. Elle ecoute ce que le client dit.
+ * @brief create file descriptor for server
  * 
  * 
  * @param port 
  * @return int 
  */
-int serveur(int port);
+int server(int port);
 
 /**
  * @brief 
  * 
- * @param prise 
+ * @param fd 
  * @param buffer 
- * @param taille 
+ * @param size 
  * @return int 
  */
-int envoyer(int prise, char *buffer, size_t taille);
+int send_data(int fd, char *buffer, size_t size);
 
 /**
  * @brief 
  * 
- * @param prise 
+ * @param fd 
  * @param buffer 
- * @param taille 
+ * @param size 
  * @return int 
  */
-int recevoir(int prise, char *buffer, size_t taille);
+int receive(int fd, char *buffer, size_t size);
 
 #endif
