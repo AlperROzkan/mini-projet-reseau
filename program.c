@@ -17,10 +17,11 @@ int setWaitingForAck(int val)
     return b;
 }
 
-int hasMessage()
+int hasMessage(int i)
 {
     static int m = 2;
-    m--;
+    if (i == 1)
+        m--;
     if (m >= 0)
         return 1;
     return 0;
@@ -35,7 +36,7 @@ enum Type
 
 typedef struct
 {
-    int type;
+    char type;
 
     char  src_addr[ADDR_LEN];
     char dest_addr[ADDR_LEN];
@@ -50,17 +51,15 @@ void buildBufferFromPacket(char *buffer, Packet *p)
 {
     // first put the type
     int i = 0;
-    buffer[i] = (char) p->type;  // explicit cast to a smaller type to avoid compiler warning on precision loss
+    buffer[i] = p->type;
     i++;
 
     // then copy the addresses and message with an offset
     for (int c = i; i - c < ADDR_LEN; ++i)
         buffer[i] = p->src_addr[i - c];
-    buffer[i] = 0; ++i;
 
     for (int c = i; i - c < ADDR_LEN; ++i)
         buffer[i] = p->dest_addr[i - c];
-    buffer[i] = 0; ++i;
 
     for (int c = i; i - c < MSG_LEN; ++i)
         buffer[i] = p->message[i - c];
@@ -77,11 +76,9 @@ void buildPacketFromBuffer(Packet *p, char *buffer)
 
     for (int c = i; i - c < ADDR_LEN; ++i)
         p->src_addr[i - c] = buffer[i];
-    ++i;
 
     for (int c = i; i - c < ADDR_LEN; ++i)
         p->dest_addr[i - c] = buffer[i];
-    ++i;
 
     for (int c = i; i - c < MSG_LEN; ++i)
         p->message[i - c] = buffer[i];
@@ -107,7 +104,7 @@ void writeMessage(Packet *p, const char *ip)
     memcpy(p->src_addr, ip, sizeof(char) * ADDR_LEN);
 
     memcpy(p->dest_addr, ip, sizeof(char) * ADDR_LEN);
-    p->dest_addr[ADDR_LEN - 1] = (((ip[ADDR_LEN - 1] - '0') + 1) % 4) + '1';  // TODO remove, just for tests
+    p->dest_addr[ADDR_LEN - 2] = (((ip[ADDR_LEN - 2] - '0') + 1) % 4) + '1';  // TODO remove, just for tests
 
     memcpy(p->message, "hello world", 12);
 }
@@ -126,7 +123,7 @@ void handlePacket(char *buffer, Packet *p, const char *ip)
     switch (p->type)
     {
         case TOKEN:
-            if (hasMessage())  // if we have something to say
+            if (hasMessage(1))  // if we have something to say
             {
                 printf("\n-> token\t\t");
                 writeMessage(p, ip);
@@ -144,7 +141,8 @@ void handlePacket(char *buffer, Packet *p, const char *ip)
                 sendAck(p, ip);
                 setWaitingForAck(1);
                 msleep(444);
-                printf("... ACK written");
+                printf("... ACK written from %s to %s", p->src_addr, p->dest_addr);
+                buildBufferFromPacket(buffer, p);
             }
             else
             {
@@ -154,7 +152,7 @@ void handlePacket(char *buffer, Packet *p, const char *ip)
             break;
         
         case ACKNOWLEDGE:
-            if (setWaitingForAck(-1))  // arguments different from 0 and 1 do not affect the stored value
+            if (setWaitingForAck(-1) == 1)  // arguments different from 0 and 1 do not affect the stored value
             {
                 // reset waiting for ack
                 setWaitingForAck(0);
@@ -231,7 +229,7 @@ int main(int argc, char **argv)
         receive(fd_recv, buffer, sizeof(Packet));
         buildPacketFromBuffer(&p, buffer);
 
-        printf("(%d) [%s -> %s] %s\n", p.type, p.src_addr, p.dest_addr, p.message);
+        //printf("(%d) [%s -> %s] %s\n", p.type, p.src_addr, p.dest_addr, p.message);
 
         // process packet data, knowing what is our own IP
         handlePacket(buffer, &p, ip);
@@ -241,7 +239,10 @@ int main(int argc, char **argv)
 
         // send it to the next dude on the loop
         send_data(fd_send, buffer, sizeof(Packet));
-        printf("\t\tdone\n");
+        //printf("\t\tdone\n");
+
+        if (hasMessage(0) == 0)
+            printf("i have no more messages\n");
     } while (1);
 
     return EXIT_SUCCESS;
