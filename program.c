@@ -41,43 +41,80 @@ char getch()
 
 typedef struct
 {
-    char adresse[LONGUEUR_ADRESSE];
+    int type; // 1:token 2:message 3:ack 
+    char adresse_src[LONGUEUR_ADRESSE]; // longueur de l'addresse IP 
+    char adresse_dest[LONGUEUR_ADRESSE];
     char message[LONGUEUR_MESSAGE];
 } Packet;
 
 void handlePacket(Packet *p, const char *ip)
 {
     // char buffer[LONGUEUR_MESSAGE];
+    switch(p->type)//stype
+    {
+        case '1': // token
+            if(wannaSend()){
+                //je prends le token 
+                printf("je veux parler, je prends le token\n");
+                takeToken();
+                printf("j'ai pris le token\n");
+            }
+            else{
+                //forward du token
+                printf("je ne veux pas parler je forward le token");
+            }
+        break;
+        case '2': // message
+            if (strcmp(ip, p->adresse_dest) == 0)
+            {   
+                printf("Je suis le destinataire.\n");
+                printf("Le message qui m'est destine : %s\n\n", p->message);
+                printf("Je renvoie l'ACK");
+                EnvoieACK();
+                printf("J'ai envoyé l'ACK");
 
-    // it's for me!!!!!! i'm hyped lmao
-    if (strcmp(ip, p->adresse) == 0)
-    {
-        printf("Je suis le destinataire.\n");
-        printf("Le message qui m'est destine : %s\n\n", p->message);
-    }
-    else
-    {
-        printf("Je ne suis pas le destinataire.\n");
-        printf("Message pour %s : %s\n\n", p->adresse, p->message);
+            }
+            else
+            {
+                printf("Je ne suis pas le destinataire.\n");
+                printf("Message pour %s : %s\n\n", p->adresse_dest, p->message);
+
+            }
+        break;
+        case '3': //ack
+        if (attenteACK())
+            {
+                printf("J'ai recu l'ack que j'attendais.\n");
+                printf("Je release le token");
+                releaseToken();
+            }
+            else
+            {
+                //forward de l'ack
+                printf("Je ne suis pas le destinataire.\n");
+            }
+        break;
+        default:
+            printf("wtf bro !?\n");
     }
 }
 
 int main(int argc, char **argv)
 {
     /*
-        prgm    [mon ip] [port écoute] [ip suivant] [port envoie]
-        prgm   127.0.0.1       1111    127.0.0.2          2222
+        prgm   [mon ip]   [port écoute] [ip suivant] [port envoie]   [message]
+        prgm   127.0.0.1  1111          127.0.0.2    2222            SuperFola est SuperGentil
     */
 
     char* ip = (char*) malloc(sizeof(char) * strlen(argv[1]));
-    strcpy(ip, argv[1]);
+    strcpy(ip, argv[1]); // ip de l'hote 
 
-    int port = (int) atoi(argv[2]);
+    int port = (int) atoi(argv[2]); // Port de l'hote 
 
     char* ip_neigh = (char*) malloc(sizeof(char) * strlen(argv[3]));
-    strcpy(ip_neigh, argv[3]);
+    strcpy(ip_neigh, argv[3]);  // ip de l'ordi suivant sur l'anneau
 
-    int port_neigh = (int) atoi(argv[4]);
+    int port_neigh = (int) atoi(argv[4]); //port de l'ordi suivant
 
     printf("%d %d", strcmp(ip, "127.0.0.1"), sizeof(Packet));
 
@@ -96,7 +133,7 @@ int main(int argc, char **argv)
             break;
     }
 
-    printf("Starting...\n"); fflush(stdout);
+    printf("Starting...\n"); fflush(stdout); //flush force le réaffichage vers le stdout
 
     if (strcmp(ip, "127.0.0.1") == 0)
     {
@@ -115,7 +152,8 @@ int main(int argc, char **argv)
         printf("Trying to receive...\n"); fflush(stdout);
         receive(fd_recv, buffer, sizeof(Packet));
         printf("OMG DUDE that was so hard\n"); fflush(stdout);
-        sscanf(buffer, "%15s%120s", &p.adresse, &p.message);
+        
+        sscanf(buffer, "%15s%120s", &p.adresse_dest, &p.message);
         printf("Gotta process that shit\n"); fflush(stdout);
         handlePacket(&p, ip);
         printf("Shit got processed\n"); fflush(stdout);
