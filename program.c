@@ -14,7 +14,9 @@
 
 typedef struct
 {
-    char address[ADDR_LEN];
+    int type; // 1:token 2:message 3:ack 
+    char adresse_src[ADDR_LEN]; // longueur de l'addresse IP 
+    char adresse_dest[ADDR_LEN];
     char message[MSG_LEN];
 } Packet;
 
@@ -56,18 +58,52 @@ void buildPacketFromBuffer(Packet *p, char *buffer)
 
 void handlePacket(Packet *p, const char *ip)
 {
-    // checking if the packet is for us
-    if (strcmp(ip, p->address) == 0)
+    switch(p->type)//stype
     {
-        printf("I got a message... ");
-        msleep(222);
-        printf("%s\n\n", p->message);
-    }
-    else
-    {
-        printf("This isn't for me... ");
-        msleep(333);
-        printf("for %s : %s\n\n", p->address, p->message);
+        case '1': // token
+            if(wannaSend()){
+                //je prends le token 
+                printf("je veux parler, je prends le token\n");
+                takeToken();
+                printf("j'ai pris le token\n");
+            }
+            else{
+                //forward du token
+                printf("je ne veux pas parler je forward le token");
+            }
+        break;
+        case '2': // message
+            if (strcmp(ip, p->adresse_dest) == 0)
+            {   
+                printf("Je suis le destinataire.\n");
+                printf("Le message qui m'est destine : %s\n\n", p->message);
+                printf("Je renvoie l'ACK");
+                EnvoieACK();
+                printf("J'ai envoyé l'ACK");
+
+            }
+            else
+            {
+                printf("Je ne suis pas le destinataire.\n");
+                printf("Message pour %s : %s\n\n", p->adresse_dest, p->message);
+
+            }
+        break;
+        case '3': //ack
+            if (attenteACK())
+            {
+                printf("J'ai recu l'ack que j'attendais.\n");
+                printf("Je release le token");
+                releaseToken();
+            }
+            else
+            {
+                //forward de l'ack
+                printf("Je ne suis pas le destinataire.\n");
+            }
+        break;
+        default:
+            printf("wtf bro !?\n");
     }
 }
 
@@ -108,7 +144,7 @@ int main(int argc, char **argv)
             break;
     }
 
-    printf("Starting...\n"); fflush(stdout);
+    printf("Starting...\n"); fflush(stdout); //flush force le réaffichage vers le stdout
 
     // send first packet if we are the master
     if (strcmp(ip, MASTER_IP) == 0)
