@@ -8,20 +8,23 @@
 #include "sleep.h"
 #include "defines.h"
 
-#define ADDR_LEN            1  // as bytes
-#define MSG_LEN           121
-#define MASTER_IP "127.0.0.1"
-
-typedef struct
+// small trick using a function and a static value to store a global value safely
+int setWaitingForAck(int val)
 {
-    // 1:token 2:message 3:ack
-    int type;
+    static int b = 0;  // not waiting for an ack
+    if (val == 0 || val == 1)
+        b = val;
+    return b;
+}
 
-    char  src_addr[ADDR_LEN];
-    char dest_addr[ADDR_LEN];
-
-    char message[MSG_LEN];
-} Packet;
+int hasMessage()
+{
+    static int m = 2;
+    m--;
+    if (m >= 0)
+        return 1;
+    return 0;
+}
 
 enum Type
 {
@@ -29,6 +32,16 @@ enum Type
     MESSAGE = 2,
     ACKNOWLEDGE = 3
 };
+
+typedef struct
+{
+    int type;
+
+    char  src_addr[ADDR_LEN];
+    char dest_addr[ADDR_LEN];
+
+    char message[MSG_LEN];
+} Packet;
 
 /**
 * Building the buffer (raw data to send over the network) from a packet
@@ -43,9 +56,11 @@ void buildBufferFromPacket(char *buffer, Packet *p)
     // then copy the addresses and message with an offset
     for (int c = i; i - c < ADDR_LEN; ++i)
         buffer[i] = p->src_addr[i - c];
+    buffer[i] = 0; ++i;
 
     for (int c = i; i - c < ADDR_LEN; ++i)
         buffer[i] = p->dest_addr[i - c];
+    buffer[i] = 0; ++i;
 
     for (int c = i; i - c < MSG_LEN; ++i)
         buffer[i] = p->message[i - c];
@@ -62,9 +77,11 @@ void buildPacketFromBuffer(Packet *p, char *buffer)
 
     for (int c = i; i - c < ADDR_LEN; ++i)
         p->src_addr[i - c] = buffer[i];
+    ++i;
 
     for (int c = i; i - c < ADDR_LEN; ++i)
         p->dest_addr[i - c] = buffer[i];
+    ++i;
 
     for (int c = i; i - c < MSG_LEN; ++i)
         p->message[i - c] = buffer[i];
@@ -84,58 +101,71 @@ void buildBufferAsToken(char *buffer, Packet *p)
     buildBufferFromPacket(buffer, p);
 }
 
+void writeMessage(Packet *p, const char *ip)
+{
+    p->type = MESSAGE;
+    memcpy(p->src_addr, ip, sizeof(char) * ADDR_LEN);
+
+    memcpy(p->dest_addr, ip, sizeof(char) * ADDR_LEN);
+    p->dest_addr[ADDR_LEN - 1] = (((ip[ADDR_LEN - 1] - '0') + 1) % 4) + '1';  // TODO remove, just for tests
+
+    memcpy(p->message, "hello world", 12);
+}
+
+void sendAck(Packet *p, const char *ip)
+{
+    p->type = ACKNOWLEDGE;
+    memcpy(p->dest_addr, p->src_addr, sizeof(char) * ADDR_LEN);
+    memcpy(p->src_addr, ip, sizeof(char) * ADDR_LEN);
+    // leave the message as is
+}
+
 void handlePacket(char *buffer, Packet *p, const char *ip)
 {
     // do different things based on the type of the packet
     switch (p->type)
     {
         case TOKEN:
-            if (1) //wannaSend())
+            if (hasMessage())  // if we have something to say
             {
-                // je prends le token 
-                printf("je veux parler, je prends le token\n");
-                // takeToken();
-                printf("j'ai pris le token\n");
+                printf("\n-> token\t\t");
+                writeMessage(p, ip);
+                buildBufferFromPacket(buffer, p);
+                msleep(444);
+                printf("message -> (%s)", p->dest_addr);
             }
-            else
-            {
-                // forward du token
-                printf("je ne veux pas parler je forward le token");
-            }
+            // otherwise, no need to modify the packet, just send the packet as it was received, as a token
             break;
         
         case MESSAGE:
             if (strcmp(ip, p->dest_addr) == 0)
             {
-                printf("Je suis le destinataire.\n");
-                printf("Le message qui m'est destine : %s\n\n", p->message);
-                printf("Je renvoie l'ACK");
-                // EnvoieACK();
-                printf("J'ai envoyé l'ACK");
+                printf("\n[%s] %s\t\t", p->src_addr, p->message);
+                sendAck(p, ip);
+                setWaitingForAck(1);
+                msleep(444);
+                printf("... ACK written");
             }
             else
             {
-                printf("Je ne suis pas le destinataire.\n");
-                printf("Message pour %s : %s\n\n", p->dest_addr, p->message);
+                // message isn't for us, no need to display it, only print a dot to say we received something
+                printf(".");
             }
             break;
         
         case ACKNOWLEDGE:
-            if (1) //attenteACK())
+            if (setWaitingForAck(-1))  // arguments different from 0 and 1 do not affect the stored value
             {
-                printf("J'ai recu l'ack que j'attendais.\n");
-                printf("Je release le token");
-                // releaseToken();
+                // reset waiting for ack
+                setWaitingForAck(0);
+                printf("\n-> ACK\t\ttoken ->");
+                buildBufferAsToken(buffer, p);
             }
-            else
-            {
-                // forward de l'ack
-                printf("Je ne suis pas le destinataire.\n");
-            }
+            // otherwise do nothing, the ACK will be forwarded
             break;
         
         default:
-            printf("wtf bro !?\n");
+            printf("ERROR, I do not know this kind of packet\n");
             break;
     }
 }
@@ -201,6 +231,8 @@ int main(int argc, char **argv)
         receive(fd_recv, buffer, sizeof(Packet));
         buildPacketFromBuffer(&p, buffer);
 
+        printf("(%d) [%s -> %s] %s\n", p.type, p.src_addr, p.dest_addr, p.message);
+
         // process packet data, knowing what is our own IP
         handlePacket(buffer, &p, ip);
 
@@ -209,6 +241,7 @@ int main(int argc, char **argv)
 
         // send it to the next dude on the loop
         send_data(fd_send, buffer, sizeof(Packet));
+        printf("\t\tdone\n");
     } while (1);
 
     return EXIT_SUCCESS;
