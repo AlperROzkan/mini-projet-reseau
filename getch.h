@@ -1,6 +1,9 @@
 #include <unistd.h>
 #include <termios.h>
 
+/**
+* Helper function to get a char from command line without having to press return
+*/
 char getch()
 {
     char buf = 0;

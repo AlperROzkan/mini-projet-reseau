@@ -2,43 +2,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>  // for bzero
 
 #include "signatures.h"
 #include "getch.h"
 #include "sleep.h"
+#include "defines.h"
 
-#define ADDR_LEN     16
-#define MSG_LEN     121
+#define ADDR_LEN            1  // as bytes
+#define MSG_LEN           121
 #define MASTER_IP "127.0.0.1"
 
 typedef struct
 {
-    int type; // 1:token 2:message 3:ack 
-    char adresse_src[ADDR_LEN]; // longueur de l'addresse IP 
-    char adresse_dest[ADDR_LEN];
+    // 1:token 2:message 3:ack
+    int type;
+
+    char  src_addr[ADDR_LEN];
+    char dest_addr[ADDR_LEN];
+
     char message[MSG_LEN];
 } Packet;
 
-/**
-* Building a token packet and putting it into the buffer
-*/
-void buildBufferAsToken(char *buffer, Packet *p)
-{}
+enum Type
+{
+    TOKEN = 1,
+    MESSAGE = 2,
+    ACKNOWLEDGE = 3
+};
 
 /**
-* building the buffer (raw data to send over the network) from a packet
+* Building the buffer (raw data to send over the network) from a packet
 */
 void buildBufferFromPacket(char *buffer, Packet *p)
 {
+    // first put the type
     int i = 0;
-    for (; i < ADDR_LEN; ++i)
-        buffer[i] = p->address[i];
-    
-    const int last = i;
+    buffer[i] = (char) p->type;  // explicit cast to a smaller type to avoid compiler warning on precision loss
+    i++;
 
-    for (; i - last < MSG_LEN; ++i)
-        buffer[i] = p->message[i - last];
+    // then copy the addresses and message with an offset
+    for (int c = i; i - c < ADDR_LEN; ++i)
+        buffer[i] = p->src_addr[i - c];
+
+    for (int c = i; i - c < ADDR_LEN; ++i)
+        buffer[i] = p->dest_addr[i - c];
+
+    for (int c = i; i - c < MSG_LEN; ++i)
+        buffer[i] = p->message[i - c];
 }
 
 /**
@@ -47,63 +57,86 @@ void buildBufferFromPacket(char *buffer, Packet *p)
 void buildPacketFromBuffer(Packet *p, char *buffer)
 {
     int i = 0;
-    for (; i < ADDR_LEN; ++i)
-        p->address[i] = buffer[i];
-    
-    const int last = i;
+    p->type = buffer[i];  // the number was directly stored into the first byte
+    i++;
 
-    for (; i - last < MSG_LEN; ++i)
-        p->message[i - last] = buffer[i];
+    for (int c = i; i - c < ADDR_LEN; ++i)
+        p->src_addr[i - c] = buffer[i];
+
+    for (int c = i; i - c < ADDR_LEN; ++i)
+        p->dest_addr[i - c] = buffer[i];
+
+    for (int c = i; i - c < MSG_LEN; ++i)
+        p->message[i - c] = buffer[i];
 }
 
-void handlePacket(Packet *p, const char *ip)
+/**
+* Building a token packet and putting it into the buffer
+*/
+void buildBufferAsToken(char *buffer, Packet *p)
 {
-    switch(p->type)//stype
+    // change type, set source and dest as magic address 0xff * ADDR_LEN
+    p->type = ACKNOWLEDGE;
+    memset(p->src_addr,  0xff, sizeof(char) * ADDR_LEN);
+    memset(p->dest_addr, 0xff, sizeof(char) * ADDR_LEN);
+    bzero(p->message, sizeof(char) * MSG_LEN);
+
+    buildBufferFromPacket(buffer, p);
+}
+
+void handlePacket(char *buffer, Packet *p, const char *ip)
+{
+    // do different things based on the type of the packet
+    switch(p->type)
     {
-        case '1': // token
-            if(wannaSend()){
-                //je prends le token 
+        case TOKEN:
+            if (1) //wannaSend())
+            {
+                // je prends le token 
                 printf("je veux parler, je prends le token\n");
-                takeToken();
+                // takeToken();
                 printf("j'ai pris le token\n");
             }
-            else{
-                //forward du token
+            else
+            {
+                // forward du token
                 printf("je ne veux pas parler je forward le token");
             }
-        break;
-        case '2': // message
-            if (strcmp(ip, p->adresse_dest) == 0)
-            {   
+            break;
+        
+        case MESSAGE:
+            if (strcmp(ip, p->dest_addr) == 0)
+            {
                 printf("Je suis le destinataire.\n");
                 printf("Le message qui m'est destine : %s\n\n", p->message);
                 printf("Je renvoie l'ACK");
-                EnvoieACK();
+                // EnvoieACK();
                 printf("J'ai envoyé l'ACK");
-
             }
             else
             {
                 printf("Je ne suis pas le destinataire.\n");
-                printf("Message pour %s : %s\n\n", p->adresse_dest, p->message);
-
+                printf("Message pour %s : %s\n\n", p->dest_addr, p->message);
             }
-        break;
-        case '3': //ack
-            if (attenteACK())
+            break;
+        
+        case ACKNOWLEDGE:
+            if (1) //attenteACK())
             {
                 printf("J'ai recu l'ack que j'attendais.\n");
                 printf("Je release le token");
-                releaseToken();
+                // releaseToken();
             }
             else
             {
-                //forward de l'ack
+                // forward de l'ack
                 printf("Je ne suis pas le destinataire.\n");
             }
-        break;
+            break;
+        
         default:
             printf("wtf bro !?\n");
+            break;
     }
 }
 
@@ -132,7 +165,10 @@ int main(int argc, char **argv)
     // data to create sockets
     int fd_send = client(ip_neigh, port_neigh);
     int fd_recv = server(port);
+
+    // buffer to store bytes to send (raw data)
     char buffer[sizeof(Packet)];
+    // structure to store formatted data about the packet
     Packet p;
 
     // waiting for user input before starting
@@ -144,7 +180,7 @@ int main(int argc, char **argv)
             break;
     }
 
-    printf("Starting...\n"); fflush(stdout); //flush force le réaffichage vers le stdout
+    printf("Starting...\n"); fflush(stdout); // flush force le réaffichage vers le stdout
 
     // send first packet if we are the master
     if (strcmp(ip, MASTER_IP) == 0)
@@ -152,6 +188,7 @@ int main(int argc, char **argv)
         printf("Sending first packet... "); fflush(stdout);
         buildBufferAsToken(buffer, &p);
         send_data(fd_send, buffer, sizeof(Packet));
+        msleep(555);
         printf("done\n"); fflush(stdout);
     }
 
@@ -165,15 +202,15 @@ int main(int argc, char **argv)
         buildPacketFromBuffer(&p, buffer);
 
         // process packet data, knowing what is our own IP
-        handlePacket(&p, ip);
+        handlePacket(buffer, &p, ip);
 
         // faking a process time because that's so cool
-        sleep(1);  // sleep for 1 SECOND
+        msleep(555);  // sleep for 555ms
 
         // send it to the next dude on the loop
         send_data(fd_send, buffer, sizeof(Packet));
     } while (1);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
