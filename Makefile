@@ -12,6 +12,9 @@ all: main
 main: build $(objects) program
 	@echo project compiled
 
+%.o: %.c
+	$(CC) $(OPTS) -c $< -o build/$@
+
 program: client.c send.c receive.c server.c program.c
 	$(CC) $(OPTS) -o build/$@ $^
 
