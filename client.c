@@ -2,9 +2,10 @@
 #include <netdb.h>      // socket, connect
 #include <arpa/inet.h>  // sockaddr_in
 #include <stdlib.h>
+#include <string.h>     // memset
 
 #include "signatures.h"
-#include <string.h>     // memset
+#include "defines.h"
 
 int client(char *server, int port)
 {
