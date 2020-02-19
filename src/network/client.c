@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>     // memset
 
-#include "signatures.h"
-#include "defines.h"
+#include <network/signatures.h>
+#include <utils/defines.h>
 
 int client(char *server, int port)
 {
