@@ -7,15 +7,18 @@ Notre solution est disponible ici: https://docs.google.com/document/d/1zClrGa1IK
 Compiler avec:
 
 ```bash
-~$ make
+~$ cd mini-projet-reseau
+~/mini-projet-reseau/$ MODE=Release
+~/mini-projet-reseau/$ cmake . -Bbuild -DCMAKE_BUILD_TYPE=$MODE
+~/mini-projet-reseau/$ cmake --build build --config $MODE
 ```
 
 ## Lancer le programme
 Exemple avec quatre terminaux:
-* `./build/program 127.0.0.1 1111 127.0.0.2 2222`
-* `./build/program 127.0.0.2 2222 127.0.0.3 3333`
-* `./build/program 127.0.0.3 3333 127.0.0.4 4444`
-* `./build/program 127.0.0.4 4444 127.0.0.1 1111`
+* `./build/program 127.000.000.001 1111 127.000.000.002 2222`
+* `./build/program 127.000.000.002 2222 127.000.000.003 3333`
+* `./build/program 127.000.000.003 3333 127.000.000.004 4444`
+* `./build/program 127.000.000.004 4444 127.000.000.001 1111`
 
 C'est l'exemple typique du token ring.
 
