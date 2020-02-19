@@ -8,6 +8,7 @@
 #include <utils/sleep.h>
 #include <utils/defines.h>
 #include <packet.h>
+#include <utils/colors.h>
 
 int main(int argc, char **argv)
 {
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
 
     Data data;
     data.waiting_for_ack = 0;
-    data.message_count = 2;
+    data.message_count = 0;
     data.messages = (MsgData*) calloc(MAX_MESSAGES, sizeof(MsgData));
 
     // waiting for user input before starting
@@ -59,14 +60,18 @@ int main(int argc, char **argv)
     // send first packet if we are the master
     if (strcmp(ip, MASTER_IP) == 0)
     {
-        printf("Sending first packet... "); fflush(stdout);
+        printf(ANSI_COLOR_CYAN "Sending first packet... " ANSI_COLOR_RESET);
+        fflush(stdout);
+
         buildBufferAsToken(buffer, &p);
+
         send_data(fd_send, buffer, sizeof(Packet));
-        printf("done\n"); fflush(stdout);
 
-        sprintf(data.messages[0].message, "%s", "first message");
-        sprintf(data.messages[0].addr,    "%s", "127.000.000.002");
+        printf(ANSI_COLOR_GREEN "done\n" ANSI_COLOR_RESET); fflush(stdout);
 
+        data.message_count = 2;
+            sprintf(data.messages[0].message, "%s", "first message");
+            sprintf(data.messages[0].addr,    "%s", "127.000.000.002");
         sprintf(data.messages[1].message, "%s", "second message");
         sprintf(data.messages[1].addr,    "%s", "127.000.000.003");
     }
@@ -80,7 +85,14 @@ int main(int argc, char **argv)
         receive(fd_recv, buffer, sizeof(Packet));
         buildPacketFromBuffer(&p, buffer);
 
-        printf("(%d) [%s -> %s] %s\n", p.type, p.src_addr, p.dest_addr, p.message);
+        printf(
+            "("
+            ANSI_COLOR_YELLOW "%d" ANSI_COLOR_RESET
+            ") ["
+            ANSI_COLOR_BLUE "%s -> %s" ANSI_COLOR_RESET
+            "] "
+            ANSI_COLOR_MAGENTA "%s\n" ANSI_COLOR_RESET
+            , p.type, p.src_addr, p.dest_addr, p.message);
 
         // process packet data, knowing what is our own IP
         handlePacket(buffer, &p, ip, &data);
@@ -93,7 +105,7 @@ int main(int argc, char **argv)
         //printf("\t\tdone\n");
 
         if (data.message_count == 0)
-            printf("I have no more messages\n");
+            printf(ANSI_COLOR_CYAN "I have no more messages\n" ANSI_COLOR_RESET);
     } while (1);
 
     free(data.messages);
