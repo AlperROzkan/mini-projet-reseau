@@ -15,15 +15,15 @@ Compiler avec:
 
 ## Lancer le programme
 Exemple avec quatre terminaux:
-* `./build/program 127.000.000.001 1111 127.000.000.002 2222`
-* `./build/program 127.000.000.002 2222 127.000.000.003 3333`
-* `./build/program 127.000.000.003 3333 127.000.000.004 4444`
-* `./build/program 127.000.000.004 4444 127.000.000.001 1111`
+* `./build/connect 127.000.000.001 1111 127.000.000.002 2222`
+* `./build/connect 127.000.000.002 2222 127.000.000.003 3333`
+* `./build/connect 127.000.000.003 3333 127.000.000.004 4444`
+* `./build/connect 127.000.000.004 4444 127.000.000.001 1111`
 
 C'est l'exemple typique du token ring.
 
 ### Arguments
-`./build/program [mon ip] [port écoute] [ip suivant] [port envoie]`
+`./build/connect [mon ip] [port écoute] [ip suivant] [port envoie]`
 
 *Nota bene*: Le paramètre `mon ip` est utile au programme pour qu'il savoir si un paquet lui est destiné.
 
