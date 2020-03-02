@@ -7,15 +7,23 @@
 #include <utils/getch.h>
 #include <utils/sleep.h>
 #include <utils/defines.h>
+#include <utils/messages.h>
 #include <packet.h>
 #include <utils/colors.h>
 
 int main(int argc, char **argv)
 {
+    FILE *fp;
+    if((fp = fopen("../build/messagesMaster.txt", "r+"))==NULL) {
+        perror("Error while opening file.");
+        exit(EXIT_FAILURE);
+    }
+
+
     /*
         prgm    [my ip] [listenning port] [neighbor ip] [destination port]
         prgm  127.0.0.1              1111     127.0.0.2               2222
-    */
+    
 
     if (argc != 5)
     {
@@ -110,6 +118,6 @@ int main(int argc, char **argv)
 
     free(data.messages);
 
-    return EXIT_SUCCESS;
+    return EXIT_SUCCESS;*/
 }
 
