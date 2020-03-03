@@ -93,6 +93,7 @@ void handlePacket(char *buffer, Packet *p, const char *ip, Data *data)
                 writeMessage(p, data->messages[i - 1].message, data->messages[i - 1].addr, ip);
                 data->message_count--;
                 buildBufferFromPacket(buffer, p);
+                data->waiting_for_ack = 1;
 
                 printf(
                     "message -> ("
@@ -114,7 +115,6 @@ void handlePacket(char *buffer, Packet *p, const char *ip, Data *data)
                     , p->src_addr, p->message);
                 
                 sendAck(p, ip);
-                data->waiting_for_ack = 1;
                 buildBufferFromPacket(buffer, p);
 
                 printf("... ACK written from %s to %s\n", p->src_addr, p->dest_addr);
@@ -122,7 +122,7 @@ void handlePacket(char *buffer, Packet *p, const char *ip, Data *data)
             break;
         
         case ACKNOWLEDGE:
-            if (data->waiting_for_ack)  // arguments different from 0 and 1 do not affect the stored value
+            if (data->waiting_for_ack && strcmp(ip, p->dest_addr) == 0)  // arguments different from 0 and 1 do not affect the stored value
             {
                 // reset waiting for ack
                 data->waiting_for_ack = 0;
