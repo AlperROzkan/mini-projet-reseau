@@ -37,9 +37,38 @@ typedef struct
     int message_count;
 } Data;
 
+/**
+ * @brief Build the buffer from a packet.
+ * 
+ * @param buffer
+ * @param p Packet used to build the buffer.
+ */
 void buildBufferFromPacket(char *buffer, Packet *p);
+
+/**
+ * @brief 
+ * 
+ * @param p 
+ * @param buffer 
+ */
 void buildPacketFromBuffer(Packet *p, char *buffer);
+
+/**
+ * @brief 
+ * 
+ * @param buffer 
+ * @param p 
+ */
 void buildBufferAsToken(char *buffer, Packet *p);
+
+/**
+ * @brief 
+ * 
+ * @param buffer 
+ * @param p 
+ * @param ip 
+ * @param data 
+ */
 void handlePacket(char *buffer, Packet *p, const char *ip, Data *data);
 
 #endif  // packet_h

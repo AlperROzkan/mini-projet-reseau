@@ -15,10 +15,10 @@ Compiler avec:
 
 ## Lancer le programme
 Exemple avec quatre terminaux:
-* `./build/connect 127.000.000.001 1111 127.000.000.002 2222`
-* `./build/connect 127.000.000.002 2222 127.000.000.003 3333`
-* `./build/connect 127.000.000.003 3333 127.000.000.004 4444`
-* `./build/connect 127.000.000.004 4444 127.000.000.001 1111`
+* `./build/Connect 127.000.000.001 1111 127.000.000.002 2222`
+* `./build/Connect 127.000.000.002 2222 127.000.000.003 3333`
+* `./build/Connect 127.000.000.003 3333 127.000.000.004 4444`
+* `./build/Connect 127.000.000.004 4444 127.000.000.001 1111`
 
 C'est l'exemple typique du token ring.
 

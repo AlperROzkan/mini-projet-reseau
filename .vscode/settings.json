@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "messages.h": "c",
+        "signatures.h": "c",
+        "colors.h": "c"
+    }
+}

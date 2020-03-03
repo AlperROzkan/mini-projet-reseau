@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 /**
- * @brief create file descriptor for client
+ * @brief Create file descriptor for client.
  * 
  * @param server 
  * @param port 
@@ -13,7 +13,7 @@
 int client(char *server, int port);
 
 /**
- * @brief create file descriptor for server
+ * @brief Create file descriptor for server.
  * 
  * 
  * @param port 
@@ -22,7 +22,7 @@ int client(char *server, int port);
 int server(int port);
 
 /**
- * @brief 
+ * @brief Send buffer to data descriptor.
  * 
  * @param fd 
  * @param buffer 
@@ -32,7 +32,7 @@ int server(int port);
 int send_data(int fd, char *buffer, size_t size);
 
 /**
- * @brief 
+ * @brief Receive buffer from data descriptor.
  * 
  * @param fd 
  * @param buffer 

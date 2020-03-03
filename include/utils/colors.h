@@ -1,3 +1,12 @@
+/**
+ * @file colors.h
+ * @brief Beautify console logs. 
+ * @version 0.1
+ * @date 2020-03-02
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #ifndef colors_h
 #define colors_h
 
