@@ -71,4 +71,6 @@ void buildBufferAsToken(char *buffer, Packet *p);
  */
 void handlePacket(char *buffer, Packet *p, const char *ip, Data *data);
 
+void writeMessage(Packet *p, const char *msg, const char *to, const char *ip);
+
 #endif  // packet_h
